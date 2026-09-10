@@ -1,21 +1,23 @@
 [package]
 name = "lending_core"
 version = "0.0.1"
-published-at = "0x81c408448d0d57b3e371ea94de1d40bf852784d3e225de1e74acab3e8395c18f"
+published-at = "0x1e4a13a0494d5facdbe8473e74127b838c2d446ecec0ce262e2eddafa77259cb"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
 rev = "mainnet"
 
-# [dependencies.math]
-# local = "../math"
+[dependencies.SuiSystem]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-system"
+rev = "framework/mainnet"
 
 [dependencies.oracle]
 local = "../oracle"
 
-# [dependencies.utils]
-# local = "../utils"
+[dependencies.navi_liquid_staking]
+local = "../volo_liquid_staking"
 
 [addresses]
 sui = "0x2"

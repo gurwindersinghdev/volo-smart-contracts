@@ -19,7 +19,7 @@ public fun update_mock_suilend_position_value<PrincipalCoinType, PoolType>(
     clock: &Clock,
     asset_type: String,
 ) {
-    let suilend_obligation = vault.get_defi_asset<
+    let suilend_obligation = vault.get_defi_asset_inner<
         PrincipalCoinType,
         MockSuilendObligation<PoolType>,
     >(

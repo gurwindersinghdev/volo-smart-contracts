@@ -21,6 +21,13 @@ const ALICE: address = @0xb;
 
 const ORACLE_DECIMALS: u256 = 1_000_000_000_000_000_000; // 18 decimals
 
+const NORMAL_STATUS: u8 = 0;
+const PENDING_DEPOSIT_STATUS: u8 = 1;
+const PENDING_WITHDRAW_STATUS: u8 = 2;
+const PENDING_WITHDRAW_WITH_AUTO_TRANSFER_STATUS: u8 = 3;
+const PARALLEL_PENDING_DEPOSIT_WITHDRAW_STATUS: u8 = 4;
+const PARALLEL_PENDING_DEPOSIT_WITHDRAW_WITH_AUTO_TRANSFER_STATUS: u8 = 5;
+
 #[test]
 // [TEST-CASE: Should request withdraw.] @test-case WITHDRAW-001
 public fun test_request_withdraw() {
@@ -1739,6 +1746,26 @@ public fun test_execute_withdraw_with_auto_transfer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
+
+    s.next_tx(OWNER);
+    {
+        let operation = s.take_shared<Operation>();
+        let vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let operator_cap = s.take_from_sender<OperatorCap>();
+
+        let operators = vault::get_single_vault_operator_by_dynamic_field(
+            &operation,
+            vault.vault_id(),
+        );
+        std::debug::print(operators);
+
+        vault::assert_single_vault_operator_paired(&operation, vault.vault_id(), &operator_cap);
+
+        test_scenario::return_shared(operation);
+        test_scenario::return_shared(vault);
+        s.return_to_sender(operator_cap);
+    };
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -1902,6 +1929,7 @@ public fun test_execute_withdraw_with_no_auto_transfer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -2093,6 +2121,7 @@ public fun test_cancel_user_withdraw_by_operator() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -2365,6 +2394,7 @@ public fun test_batch_execute_withdraw() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -2806,7 +2836,13 @@ public fun test_request_withdrawa_with_auto_transfer_fail_zero_shares() {
     s.end();
 }
 
-#[test, expected_failure(abort_code = vault::ERR_INSUFFICIENT_CLAIMABLE_PRINCIPAL, location = vault)]
+#[
+    test,
+    expected_failure(
+        abort_code = vault::ERR_INSUFFICIENT_CLAIMABLE_PRINCIPAL,
+        location = vault,
+    ),
+]
 // [TEST-CASE: Should execute withdraw without auto transfer.] @test-case WITHDRAW-021
 public fun test_claim_claimable_principal_amount_exceed_receipt_claimable_amount() {
     let mut s = test_scenario::begin(OWNER);
@@ -2816,6 +2852,7 @@ public fun test_claim_claimable_principal_amount_exceed_receipt_claimable_amount
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -2948,7 +2985,13 @@ public fun test_claim_claimable_principal_amount_exceed_receipt_claimable_amount
     s.end();
 }
 
-#[test, expected_failure(abort_code = vault::ERR_INSUFFICIENT_CLAIMABLE_PRINCIPAL, location = vault)]
+#[
+    test,
+    expected_failure(
+        abort_code = vault::ERR_INSUFFICIENT_CLAIMABLE_PRINCIPAL,
+        location = vault,
+    ),
+]
 // [TEST-CASE: Should execute withdraw without auto transfer.] @test-case WITHDRAW-022
 public fun test_claim_claimable_principal_amount_exceed_vault_claimable_amount() {
     let mut s = test_scenario::begin(OWNER);
@@ -2958,6 +3001,7 @@ public fun test_claim_claimable_principal_amount_exceed_vault_claimable_amount()
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3094,9 +3138,8 @@ public fun test_claim_claimable_principal_amount_exceed_vault_claimable_amount()
 }
 
 #[test]
-#[expected_failure(abort_code = vault::ERR_WRONG_RECEIPT_STATUS, location = vault)]
-// [TEST-CASE: Should request withdraw fail if wrong receipt status.] @test-case WITHDRAW-023
-public fun test_request_withdraw_fail_wrong_receipt_status() {
+// [TEST-CASE: Should request withdraw with pending deposit status.] @test-case WITHDRAW-023
+public fun test_request_withdraw_with_pending_deposit_status() {
     let mut s = test_scenario::begin(OWNER);
 
     let mut clock = clock::create_for_testing(s.ctx());
@@ -3144,30 +3187,6 @@ public fun test_request_withdraw_fail_wrong_receipt_status() {
         test_scenario::return_shared(reward_manager);
     };
 
-    s.next_tx(OWNER);
-    {
-        let coin = coin::mint_for_testing<SUI_TEST_COIN>(1_000_000_000, s.ctx());
-        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
-        let mut reward_manager = s.take_shared<RewardManager<SUI_TEST_COIN>>();
-
-        let (_request_id, receipt, coin) = user_entry::deposit(
-            &mut vault,
-            &mut reward_manager,
-            coin,
-            1_000_000_000,
-            2_000_000_000,
-            option::none(),
-            &clock,
-            s.ctx(),
-        );
-
-        transfer::public_transfer(coin, OWNER);
-        transfer::public_transfer(receipt, OWNER);
-
-        test_scenario::return_shared(vault);
-        test_scenario::return_shared(reward_manager);
-    };
-
     // Execute deposit
     s.next_tx(OWNER);
     {
@@ -3185,6 +3204,33 @@ public fun test_request_withdraw_fail_wrong_receipt_status() {
 
         test_scenario::return_shared(vault);
         test_scenario::return_shared(config);
+    };
+
+     // Request deposit
+    s.next_tx(OWNER);
+    {
+        let coin = coin::mint_for_testing<SUI_TEST_COIN>(1_000_000_000, s.ctx());
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let mut reward_manager = s.take_shared<RewardManager<SUI_TEST_COIN>>();
+        let receipt = s.take_from_sender<Receipt>();
+
+        let (_request_id, ret_receipt, coin) = user_entry::deposit(
+            &mut vault,
+            &mut reward_manager,
+            coin,
+            1_000_000_000,
+            2_000_000_000,
+            option::some(receipt),
+            &clock,
+            s.ctx(),
+        );
+
+        transfer::public_transfer(coin, OWNER);
+        transfer::public_transfer(ret_receipt, OWNER);
+
+        // s.return_to_sender(ret_receipt);
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(reward_manager);
     };
 
     s.next_tx(OWNER);
@@ -3226,24 +3272,17 @@ public fun test_request_withdraw_fail_wrong_receipt_status() {
         s.return_to_sender(receipt);
     };
 
-        s.next_tx(OWNER);
+    s.next_tx(OWNER);
     {
-        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
-        let mut receipt = s.take_from_sender<Receipt>();
+        let vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let receipt = s.take_from_sender<Receipt>();
 
-        user_entry::withdraw(
-            &mut vault,
-            1_000_000_000,
-            500_000_000,
-            &mut receipt,
-            &clock,
-            s.ctx(),
-        );
+        let receipt_status = vault.vault_receipt_info(receipt.receipt_id()).status();
+        assert!(receipt_status == PARALLEL_PENDING_DEPOSIT_WITHDRAW_STATUS);
 
         test_scenario::return_shared(vault);
         s.return_to_sender(receipt);
     };
-
 
     clock.destroy_for_testing();
     s.end();
@@ -3348,7 +3387,6 @@ public fun test_cancel_withdraw_fail_wrong_recipient_address() {
         s.return_to_sender(receipt);
     };
 
-
     // Cancel withdraw with wrong receipt id
     s.next_tx(OWNER);
     {
@@ -3380,6 +3418,7 @@ public fun test_batch_execute_withdraw_with_mixed_mode() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);

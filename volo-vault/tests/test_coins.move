@@ -1,4 +1,5 @@
 #[test_only]
+#[allow(deprecated_usage)]
 module volo_vault::sui_test_coin {
     use sui::coin;
 
@@ -30,6 +31,7 @@ module volo_vault::sui_test_coin {
 }
 
 #[test_only]
+#[allow(deprecated_usage)]
 module volo_vault::usdc_test_coin {
     use sui::coin;
 
@@ -61,6 +63,7 @@ module volo_vault::usdc_test_coin {
 }
 
 #[test_only]
+#[allow(deprecated_usage)]
 module volo_vault::btc_test_coin {
     use sui::coin;
 

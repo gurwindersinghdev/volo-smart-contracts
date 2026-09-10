@@ -1,8 +1,0 @@
-[package]
-name    = "limiter"
-edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
-
-[dependencies]
-# Pyth         = { git = " https://github.com/solendprotocol/pyth-crosschain.git", rev = "sui-contract-mainnet", subdir = "target_chains/sui/contracts", override = true }
-lending_core = { git = "https://github.com/naviprotocol/navi-smart-contracts", rev = "main", subdir = "lending_core" }
-oracle       = { git = "https://github.com/naviprotocol/navi-smart-contracts", rev = "main", subdir = "oracle" }

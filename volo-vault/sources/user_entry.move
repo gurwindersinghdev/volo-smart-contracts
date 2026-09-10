@@ -4,10 +4,26 @@ use sui::address;
 use sui::balance::Balance;
 use sui::clock::Clock;
 use sui::coin::Coin;
+use sui::event::emit;
 use volo_vault::receipt::Receipt;
+use volo_vault::receipt_cancellation;
 use volo_vault::reward_manager::RewardManager;
 use volo_vault::vault::Vault;
-use volo_vault::receipt_cancellation;
+use volo_vault::swap_request;
+use std::type_name;
+
+const RATE_SCALING: u64 = 10000;
+
+// A withdraw request that asks to be settled in `target_asset_type` instead of the principal. The
+// operator may still settle it as a plain withdrawal, which emits WithdrawSwapRequestDropped.
+public struct WithdrawSwapRequested has copy, drop {
+    vault_id: address,
+    request_id: u64,
+    recipient: address,
+    target_asset_type: std::ascii::String,
+    slippage_bps: u64,
+    shares: u256,
+}
 
 // ---------------------  Errors  ---------------------//
 const ERR_INSUFFICIENT_BALANCE: u64 = 4_001;
@@ -193,6 +209,9 @@ public fun cancel_withdraw<PrincipalCoinType>(
         ctx.sender(),
     );
 
+    // Clean up the corresponding WithdrawSwapRequest if one exists
+    swap_request::try_delete_withdraw_swap_request(vault, request_id);
+
     cancelled_shares
 }
 
@@ -203,4 +222,55 @@ public fun claim_claimable_principal<PrincipalCoinType>(
 ): Balance<PrincipalCoinType> {
     vault.assert_vault_receipt_matched(receipt);
     vault.claim_claimable_principal(receipt.receipt_id(), amount)
+}
+
+// ^(v1.3 upgrade - new)
+public fun withdraw_with_swap<PrincipalCoinType, TargetAssetType>(
+    vault: &mut Vault<PrincipalCoinType>,
+    shares: u256,
+    expected_amount: u64,
+    receipt: &mut Receipt,
+    clock: &Clock,
+    slippage_bps: u64,
+    ctx: &mut TxContext,
+): u64 {
+    vault.assert_vault_receipt_matched(receipt);
+    assert!(
+        vault.check_locking_time_for_withdraw(receipt.receipt_id(), clock),
+        ERR_WITHDRAW_LOCKED,
+    );
+    assert!(shares > 0, ERR_INVALID_AMOUNT);
+    assert!(slippage_bps <= RATE_SCALING, ERR_INVALID_AMOUNT);
+
+    let recipient = ctx.sender();
+    let target_asset_type = type_name::with_defining_ids<TargetAssetType>().into_string();
+
+    let request_id = vault.request_withdraw(
+        clock,
+        receipt.receipt_id(),
+        shares,
+        expected_amount,
+        recipient,
+    );
+
+    let swap_request = swap_request::new_withdraw_swap_request(
+        vault.vault_id(),
+        request_id,
+        recipient,
+        target_asset_type,
+        slippage_bps,
+    );
+    let withdraw_swap_requests = swap_request::withdraw_swap_requests_mut(vault);
+    withdraw_swap_requests.add(request_id, swap_request);
+
+    emit(WithdrawSwapRequested {
+        vault_id: vault.vault_id(),
+        request_id,
+        recipient,
+        target_asset_type,
+        slippage_bps,
+        shares,
+    });
+
+    request_id
 }

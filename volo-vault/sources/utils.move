@@ -8,6 +8,7 @@ use sui::vec_map::VecMap;
 
 const DECIMALS: u256 = 1_000_000_000; // 10^9
 const ORACLE_DECIMALS: u256 = 1_000_000_000_000_000_000; // 10^18
+const ORACLE_DECIMALS_EXP: u64 = 18;
 
 // Combina a TypeName with an ID to generate its unique name
 // E.g. NaviAccountCap1, NaviAccountCap2, etc.
@@ -74,4 +75,13 @@ public fun mul_with_oracle_price(v1: u256, v2: u256): u256 {
 // Asset Balance = Asset USD Value / Oracle Price
 public fun div_with_oracle_price(v1: u256, v2: u256): u256 {
     v1 * ORACLE_DECIMALS / v2
+}
+
+// Rescale `value`, which carries `decimal` decimals, to ORACLE_DECIMALS (10^18).
+public fun to_oracle_decimal(value: u256, decimal: u64): u256 {
+    if (decimal < ORACLE_DECIMALS_EXP) {
+        value * std::u256::pow(10, ((ORACLE_DECIMALS_EXP - decimal) as u8))
+    } else {
+        value / std::u256::pow(10, ((decimal - ORACLE_DECIMALS_EXP) as u8))
+    }
 }

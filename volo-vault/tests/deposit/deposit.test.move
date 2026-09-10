@@ -1734,8 +1734,9 @@ public fun test_execute_deposit() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -1895,7 +1896,7 @@ public fun test_execute_deposit_fail_already_executed() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -2018,7 +2019,7 @@ public fun test_execute_deposit_fail_negative_slippage() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -2167,7 +2168,7 @@ public fun test_execute_deposit_fail_positive_slippage() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -2272,7 +2273,7 @@ public fun test_execute_deposit_multiple_users_by_request_order() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -2435,7 +2436,7 @@ public fun test_execute_deposit_multiple_users_not_by_request_order() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     s.next_tx(OWNER);
     {
@@ -2647,6 +2648,7 @@ public fun test_cancel_user_deposit_by_operator() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Request deposit
     s.next_tx(OWNER);
@@ -2926,8 +2928,9 @@ public fun test_batch_execute_deposit() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -3068,8 +3071,8 @@ public fun test_batch_execute_deposit() {
     s.end();
 }
 
-#[test, expected_failure(abort_code = vault::ERR_COIN_BUFFER_NOT_FOUND, location = vault)]
-// [TEST-CASE: Should cancel deposit if vault is disabled.] @test-case DEPOSIT-032
+#[test, expected_failure(abort_code = vault::ERR_VAULT_NOT_NORMAL, location = vault)]
+// [TEST-CASE: Should not cancel deposit if vault is disabled.] @test-case DEPOSIT-032
 public fun test_cancel_deposit_success_vault_disabled() {
     let mut s = test_scenario::begin(OWNER);
 

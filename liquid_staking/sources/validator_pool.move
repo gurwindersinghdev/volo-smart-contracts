@@ -33,14 +33,14 @@ module liquid_staking::validator_pool {
     const DEFAULT_WEIGHT: u64 = 100;
     const ACTIVE_STAKE_REDEEM_OFFSET: u64 = 100;
 
-    /// ValidatorPool manages all stake for vSui.
+    /// The ValidatorPool struct holds all stake for the LST.
     public struct ValidatorPool has store {
         /// Sui Pool as a buffer for stake/unstake operations.
         sui_pool: Balance<SUI>,
-        /// Validators holding stake in vSui.
+        /// Validators that have stake in the LST.
         validator_infos: vector<ValidatorInfo>,
-        /// Total Sui managed by vSui.
-        /// total_sui_supply = sum(validator_infos.total_sui_amount) + sui_pool
+        /// Total Sui managed by the LST. This is the sum of all active 
+        /// stake, inactive stake, and SUI in the sui_pool.
         total_sui_supply: u64,
         /// The epoch at which the pool was last refreshed.
         last_refresh_epoch: u64,
@@ -52,16 +52,25 @@ module liquid_staking::validator_pool {
         extra_fields: Bag
     }
 
-    /// ValidatorInfo manages every single validator's stake.
+    /// ValidatorInfo holds all stake for a single validator.
     public struct ValidatorInfo has store {
+        /// The staking pool ID for the validator.
         staking_pool_id: ID,
+        /// The validator's address.
         validator_address: address,
+        /// The active stake for the validator.
         active_stake: Option<FungibleStakedSui>,
+        /// The inactive stake for the validator.
         inactive_stake: Option<StakedSui>,
+        /// The exchange rate for the validator.
         exchange_rate: PoolTokenExchangeRate,
+        /// The total Sui staked to the validator (active stake + inactive stake).
         total_sui_amount: u64,
+        /// Weight assigned to the current validator
         assigned_weight: u64,
+        /// The epoch at which the exchange rate was last updated.
         last_refresh_epoch: u64,
+        /// Extra fields for future-proofing.
         extra_fields: Bag
     }
 
@@ -72,6 +81,7 @@ module liquid_staking::validator_pool {
             total_sui_supply: 0,
             last_refresh_epoch: ctx.epoch() - 1,
             total_weight: 0,
+            // validator_weights: vec_map::empty(),
             manage: manage::new(),
             extra_fields: bag::new(ctx)
         }
@@ -172,6 +182,11 @@ module liquid_staking::validator_pool {
         && self.assigned_weight == 0
     }
 
+    /// Updates validator pool state by:
+    /// - Refreshing exchange rates across all validators
+    /// - Converting eligible inactive stake to active stake
+    /// - Cleaning up validators with zero stake
+    /// This function is idempotent and returns true if any updates were made.
     public(package) fun refresh(
         self: &mut ValidatorPool, 
         system_state: &mut SuiSystemState, 
@@ -182,14 +197,12 @@ module liquid_staking::validator_pool {
         if(self.total_sui_supply() == 0) {
             return false
         };
-
-        // skip refresh if the pool has not changed
+        
         if (self.last_refresh_epoch == ctx.epoch()) {
             stake_pending_sui(self, system_state, ctx);
             return false
         };
 
-        // get all active validator addresses
         let active_validator_addresses = system_state.active_validator_addresses();
 
         let mut i = self.validator_infos.length();
@@ -197,7 +210,6 @@ module liquid_staking::validator_pool {
             i = i - 1;
 
             // withdraw all stake if validator is inactive.
-            // notice that inacitve validator is not invalid stake
             // Time Complexity: O(n)
             if (!active_validator_addresses.contains(&self.validator_infos[i].validator_address)) {
                 // unstake max amount of sui.
@@ -206,7 +218,6 @@ module liquid_staking::validator_pool {
                 self.validator_infos[i].assigned_weight = 0;
             };
 
-            // remove empty validator on epoch refresh
             if (self.validator_infos[i].is_empty()) {
                 let ValidatorInfo { active_stake, inactive_stake, extra_fields, .. } = self.validator_infos.remove(i);
                 active_stake.destroy_none();
@@ -233,7 +244,6 @@ module liquid_staking::validator_pool {
                 self.validator_infos[i].exchange_rate = *latest_exchange_rate_opt.borrow();
                 self.validator_infos[i].last_refresh_epoch = ctx.epoch();
             };
-            // update total stake with latest exchange rate
             self.refresh_validator_info(i);
 
             // convert inactive stake to active stake
@@ -528,6 +538,7 @@ module liquid_staking::validator_pool {
         sui_amount
     }
 
+    /* Join Functions */
     public(package) fun join_to_sui_pool(self: &mut ValidatorPool, sui: Balance<SUI>) {
         self.total_sui_supply = self.total_sui_supply + sui.value();
         self.sui_pool.join(sui);
@@ -585,6 +596,7 @@ module liquid_staking::validator_pool {
         self.refresh_validator_info(validator_index);
     }
 
+    /* Split/Take Functions */
     public(package) fun split_up_to_n_sui_from_sui_pool(
         self: &mut ValidatorPool, 
         max_sui_amount_out: u64
@@ -613,7 +625,8 @@ module liquid_staking::validator_pool {
         amount
     }
 
-    // unstake output amount [0, n + 1e9 * exchange_rate)
+    // This function tries to unstake approximately n SUI. 
+    // the output amount should be bounded from [0, n + 1 * MIST_PER_SUI * pool_token_ratio)
     public(package) fun unstake_approx_n_sui_from_active_stake(
         self: &mut ValidatorPool, 
         system_state: &mut SuiSystemState,
@@ -659,7 +672,7 @@ module liquid_staking::validator_pool {
         unstaked_sui_amount
     }
 
-    // unstake output amount [0, n + 1e9) Sui
+    // The output should be bounded from [0, n + 1 * MIST_PER_SUI) Sui
     public(package) fun unstake_approx_n_sui_from_inactive_stake(
         self: &mut ValidatorPool, 
         system_state: &mut SuiSystemState,
@@ -692,6 +705,7 @@ module liquid_staking::validator_pool {
         unstaked_sui_amount
     }
 
+    // This function approximately unstakes n SUI from validators, then returns up to n SUI.
     public(package) fun split_n_sui(
         self: &mut ValidatorPool,
         system_state: &mut SuiSystemState,
@@ -763,6 +777,7 @@ module liquid_staking::validator_pool {
         self.split_from_sui_pool(safe_max_sui_amount_out)
     }
 
+    /* all split/unstake/take functions are built using the following 4 functions */
     fun take_some_active_stake(
         self: &mut ValidatorPool, 
         system_state: &mut SuiSystemState,
@@ -823,6 +838,7 @@ module liquid_staking::validator_pool {
         stake
     }
 
+    /* Private functions */
     fun get_or_add_validator_index_by_staking_pool_id_mut(
         self: &mut ValidatorPool, 
         system_state: &mut SuiSystemState,
@@ -884,5 +900,58 @@ module liquid_staking::validator_pool {
                 * (token_amount as u128)
                 / (exchange_rate.pool_token_amount() as u128);
         res as u64
+    }
+
+    #[test_only]
+    public fun check_all_validators_rate(self: &mut ValidatorPool, system_state: &mut SuiSystemState, ctx: &mut TxContext) {
+        let mut i = 0;
+        let mut ret = vector::empty<u64>();
+        let mut active_amount = 0;
+        while (i < self.validator_infos.length()) {
+            let exchange_rates = system_state.pool_exchange_rates(&self.validator_infos[i].staking_pool_id);
+
+            let mut title = ascii::string(b"exchange_rates validator: ");
+            title.append(ascii::string(*i.to_string().as_bytes()));
+            std::debug::print(&title);
+            let mut j = ctx.epoch() + 1;
+            let mut last_ratio: u128 = 0;
+            while (j > 0) {
+                if (exchange_rates.contains(j - 1)) {
+                    let rate = &exchange_rates[j - 1];
+                    if (rate.sui_amount() != 0 && rate.pool_token_amount() != 0) {
+                        let ratio = (rate.pool_token_amount() as u128) * 1_000000000 / (rate.sui_amount() as u128);
+                        let ratio_reverse = (rate.sui_amount() as u128) * 1_000000000 / (rate.pool_token_amount() as u128);
+
+                        std::debug::print(&(j - 1));
+                        std::debug::print(&ratio_reverse);
+                        assert!(ratio >= last_ratio, 0);
+                        last_ratio = ratio;
+                    };
+                };
+                j = j - 1;
+            };
+
+            let mut amount = 0;
+            if (self.validator_infos[i].active_stake.is_some()) {
+                amount = self.validator_infos[i].active_stake.borrow().value();
+            };
+            let rate = exchange_rates.borrow(ctx.epoch());
+            let sui_amount = get_sui_amount(rate, amount);
+
+            active_amount = active_amount + sui_amount;
+            ret.push_back(sui_amount);
+
+            // let s = self.validator_infos[i].active_stake.extract();
+            // let sui = system_state.redeem_fungible_staked_sui(s, ctx);
+            // assert!(sui.value() == sui_amount, 0);
+            // sui.destroy_for_testing();
+
+            i = i + 1;
+        };
+        std::debug::print(&ascii::string(b"check_all_validators_rate [sui amount, active amount, sui pool, total sui supply]"));
+        std::debug::print(&ret);
+        std::debug::print(&active_amount);
+        std::debug::print(&self.sui_pool().value());
+        std::debug::print(&self.total_sui_supply);
     }
 }

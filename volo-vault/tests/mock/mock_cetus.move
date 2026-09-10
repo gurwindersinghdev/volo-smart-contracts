@@ -22,7 +22,7 @@ public fun update_mock_cetus_position_value<PrincipalCoinType, CoinA, CoinB>(
     clock: &Clock,
     asset_type: String,
 ) {
-    let cetus_position = vault.get_defi_asset<PrincipalCoinType, MockCetusPosition<CoinA, CoinB>>(
+    let cetus_position = vault.get_defi_asset_inner<PrincipalCoinType, MockCetusPosition<CoinA, CoinB>>(
         asset_type,
     );
 

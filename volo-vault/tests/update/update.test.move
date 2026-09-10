@@ -50,7 +50,7 @@ public fun test_update_total_usd_value_only_principal() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);
@@ -91,7 +91,7 @@ public fun test_update_total_usd_value_only_principal() {
         let total_usd_value = vault.get_total_usd_value(&clock);
         assert!(total_usd_value == 2 * DECIMALS);
 
-        let (principal_asset_value, last_update_time) = vault.get_asset_value(type_name::get<
+        let (principal_asset_value, last_update_time) = vault.get_asset_value(type_name::with_defining_ids<
             SUI_TEST_COIN,
         >().into_string());
         assert!(principal_asset_value == 2 * DECIMALS);
@@ -185,7 +185,7 @@ public fun test_update_total_usd_value_only_principal_fail_not_updated() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     s.next_tx(OWNER);
     {
@@ -196,6 +196,8 @@ public fun test_update_total_usd_value_only_principal_fail_not_updated() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -315,7 +317,7 @@ public fun test_validate_total_usd_value_only_principal_fail_not_updated() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     s.next_tx(OWNER);
     {
@@ -326,6 +328,8 @@ public fun test_validate_total_usd_value_only_principal_fail_not_updated() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -516,7 +520,7 @@ public fun test_update_total_usd_value_with_coin_type_asset() {
     s.next_tx(OWNER);
     {
         let mut oracle_config = s.take_shared<OracleConfig>();
-        let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+        let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
         clock::set_for_testing(&mut clock, 1000);
         vault_oracle::set_current_price(
@@ -582,6 +586,8 @@ public fun test_update_usd_value_fail_oracle_price_not_latest_updated() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -645,7 +651,7 @@ public fun test_update_usd_value_fail_not_updated() {
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     s.next_tx(OWNER);
     {
@@ -656,6 +662,8 @@ public fun test_update_usd_value_fail_not_updated() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -899,6 +907,8 @@ public fun test_update_usd_value_with_all_types_of_assets() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -1244,6 +1254,8 @@ public fun test_validate_total_usd_value_updated_fail_not_updated() {
             0,
             navi_account_cap,
         );
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
         test_scenario::return_shared(vault);
     };
 
@@ -1294,6 +1306,365 @@ public fun test_validate_total_usd_value_updated_fail_not_updated() {
 
         // Will fail here
         vault.validate_total_usd_value_updated(&clock);
+
+        test_scenario::return_shared(vault);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+// [TEST-CASE: Should value a single whitelisted market = 0 for a fresh account, recorded at that market's time.] @test-case NAVI-001
+// With only market 0 whitelisted, a freshly created NAVI account has no balance, so the position
+// should value to 0 and the aggregate should be recorded with that market's update time.
+public fun test_update_navi_position_value_single_market() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+    init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
+
+        test_scenario::return_shared(vault);
+    };
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let mut storage = s.take_shared<Storage>();
+        let config = s.take_shared<OracleConfig>();
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+
+        // Main market by default.
+        assert!(storage.get_market_id() == 0);
+
+        navi_adaptor::update_navi_position_value(
+            &mut vault,
+            &config,
+            &clock,
+            navi_asset_type,
+            &mut storage,
+        );
+
+        let (navi_value, last_update_time) = vault.get_asset_value(navi_asset_type);
+        assert!(navi_value == 0);
+        assert!(last_update_time == 0);
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(storage);
+        test_scenario::return_shared(config);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+#[expected_failure(abort_code = navi_adaptor::ERR_NAVI_MARKET_NOT_WHITELISTED, location = navi_adaptor)]
+// [TEST-CASE: Should abort update_navi_position_value on a non-whitelisted market.] @test-case NAVI-002
+// Only market 0 is whitelisted; a Storage from a market that is not on the whitelist should be
+// rejected, otherwise the position could be valued against an untracked market.
+public fun test_update_navi_position_value_fail_not_whitelisted() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+    init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
+
+        test_scenario::return_shared(vault);
+    };
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let mut storage = s.take_shared<Storage>();
+        let config = s.take_shared<OracleConfig>();
+
+        // Simulate a market that has not been whitelisted.
+        storage.set_market_id_for_testing(1);
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+
+        // Aborts here with ERR_NAVI_MARKET_NOT_WHITELISTED.
+        navi_adaptor::update_navi_position_value(
+            &mut vault,
+            &config,
+            &clock,
+            navi_asset_type,
+            &mut storage,
+        );
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(storage);
+        test_scenario::return_shared(config);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+// [TEST-CASE: Should commit aggregate only when all whitelisted markets synced in one tx.] @test-case NAVI-003
+public fun test_update_navi_position_value_multi_market_requires_all_synced() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+    init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 0);
+        navi_adaptor::add_navi_market_for_testing(&mut vault, vault_utils::parse_key<NaviAccountCap>(0), 1);
+
+        test_scenario::return_shared(vault);
+    };
+
+    clock::set_for_testing(&mut clock, 1000);
+
+    let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+
+    // Sync only market 0. Market 1 is still stale, so the aggregate is NOT committed: the registry
+    // records market 0 at t == 1000, but the vault's asset value/timestamp stay at their initial 0.
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let mut storage = s.take_shared<Storage>();
+        let config = s.take_shared<OracleConfig>();
+
+        assert!(storage.get_market_id() == 0);
+
+        navi_adaptor::update_navi_position_value(
+            &mut vault,
+            &config,
+            &clock,
+            navi_asset_type,
+            &mut storage,
+        );
+
+        // Registry recorded market 0 at the current time...
+        let (m0_value, m0_updated_at) = navi_adaptor::navi_market_value_for_testing(
+            &vault,
+            navi_asset_type,
+            0,
+        );
+        assert!(m0_value == 0);
+        assert!(m0_updated_at == 1000);
+
+        // ...but market 1 is untouched, so nothing is committed to the vault yet.
+        let (m1_value, m1_updated_at) = navi_adaptor::navi_market_value_for_testing(
+            &vault,
+            navi_asset_type,
+            1,
+        );
+        assert!(m1_value == 0);
+        assert!(m1_updated_at == 0);
+
+        let (navi_value, last_update_time) = vault.get_asset_value(navi_asset_type);
+        assert!(navi_value == 0);
+        assert!(last_update_time == 0);
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(storage);
+        test_scenario::return_shared(config);
+    };
+
+    // Now sync market 1 (the same Storage retagged as market 1). Both markets are updated at
+    // t == 1000, so the aggregate timestamp advances to 1000.
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let mut storage = s.take_shared<Storage>();
+        let config = s.take_shared<OracleConfig>();
+
+        storage.set_market_id_for_testing(1);
+
+        navi_adaptor::update_navi_position_value(
+            &mut vault,
+            &config,
+            &clock,
+            navi_asset_type,
+            &mut storage,
+        );
+
+        let (navi_value, last_update_time) = vault.get_asset_value(navi_asset_type);
+        assert!(navi_value == 0);
+        assert!(last_update_time == 1000);
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(storage);
+        test_scenario::return_shared(config);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+#[expected_failure(abort_code = navi_adaptor::ERR_NAVI_MARKET_ALREADY_WHITELISTED, location = navi_adaptor)]
+// [TEST-CASE: Should abort whitelisting the same market twice.] @test-case NAVI-004
+public fun test_navi_add_market_fail_duplicate() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 0);
+        // Aborts: market 0 is already whitelisted.
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 0);
+
+        test_scenario::return_shared(vault);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+// [TEST-CASE: Should remove a 0-value market, then re-add it.] @test-case NAVI-005
+public fun test_navi_remove_market_zero_value() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 0);
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 1);
+
+        // Market 1 has 0 recorded value, so it can be removed.
+        navi_adaptor::remove_navi_market(&mut vault, navi_asset_type, 1, &clock);
+
+        // Re-adding the removed market succeeds and starts fresh (value 0, updated_at 0).
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 1);
+        let (value, updated_at) = navi_adaptor::navi_market_value_for_testing(
+            &vault,
+            navi_asset_type,
+            1,
+        );
+        assert!(value == 0);
+        assert!(updated_at == 0);
+
+        test_scenario::return_shared(vault);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+#[expected_failure(abort_code = navi_adaptor::ERR_NAVI_MARKET_VALUE_NOT_ZERO, location = navi_adaptor)]
+// [TEST-CASE: Should abort removing a market with non-zero value.] @test-case NAVI-006
+public fun test_navi_remove_market_fail_value_not_zero() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 0);
+
+        // Force a non-zero recorded value for market 0.
+        navi_adaptor::set_navi_market_value_for_testing(&mut vault, navi_asset_type, 0, 1);
+
+        // Aborts: market 0 still carries value.
+        navi_adaptor::remove_navi_market(&mut vault, navi_asset_type, 0, &clock);
+
+        test_scenario::return_shared(vault);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+#[expected_failure(abort_code = navi_adaptor::ERR_NAVI_MARKET_NOT_WHITELISTED, location = navi_adaptor)]
+// [TEST-CASE: Should abort removing a never-whitelisted market.] @test-case NAVI-007
+public fun test_navi_remove_market_fail_not_whitelisted() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+
+        let navi_account_cap = lending::create_account(s.ctx());
+        vault.add_new_defi_asset(0, navi_account_cap);
+
+        let navi_asset_type = vault_utils::parse_key<NaviAccountCap>(0);
+        navi_adaptor::init_navi_market_registry(&mut vault, s.ctx());
+        navi_adaptor::add_navi_market_for_testing(&mut vault, navi_asset_type, 0);
+
+        // Aborts: market 5 was never whitelisted.
+        navi_adaptor::remove_navi_market(&mut vault, navi_asset_type, 5, &clock);
 
         test_scenario::return_shared(vault);
     };

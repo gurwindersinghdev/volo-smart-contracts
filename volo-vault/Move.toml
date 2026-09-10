@@ -1,127 +1,46 @@
 [package]
 name    = "volo_vault"
 edition = "2024.beta"  # edition = "legacy" to use legacy (pre-2024) Move
-published-at = "0x4da7b643d0e7bfa5ec6f10e0dc28e562068114e913864a84f61be0cb26b684e0"
+# Deployed mainnet head: v13 0xdb8fca27462e39cb3cdb66c64baa498bfa037b3d8dce4046726eb4573371f02e (original id 0xcd86f77503a755c48fe6c87e1b8e9a137ec0c1bf37aac8878b6083262b27fefa). Use Move.mainnet.toml for mainnet address bindings.
+published-at = "0xdb8fca27462e39cb3cdb66c64baa498bfa037b3d8dce4046726eb4573371f02e"
 
 # navi lending core and suilend uses different pyth code repo
 [dependencies.Pyth]
 git      = "https://github.com/solendprotocol/pyth-crosschain.git"
-rev      = "mainnet"
+rev      = "sui-contract-mainnet"
 subdir   = "target_chains/sui/contracts"
 override = true
 
-# [dependencies.lending_core]
-# git    = "https://github.com/naviprotocol/protocol-interface"
-# rev    = "main"
-# subdir = "lending_core"
-# # addr   = "0x81c408448d0d57b3e371ea94de1d40bf852784d3e225de1e74acab3e8395c18f"
+# Pyth "pro compatible" deployment (0x55300367...), the one NAVI oracle v5 expects for
+# PriceInfoObject. Vendored locally with its named addresses renamed
+# pyth -> pyth_pro_compatible and wormhole -> wormhole_simple_majority, because the
+# solendprotocol Pyth fork above already occupies the `pyth` / `wormhole` address names.
+# Module bytecode is unaffected: the modules still live at 0x55300367... / 0x99de5c96...
+[dependencies.PythProCompatible]
+local = "./local_dependencies/pyth_pro_compatible"
 
-# [dependencies.Switchboard]
-# git    = "https://github.com/switchboard-xyz/sui.git"
-# subdir = "on_demand"
-# rev    = "main"
-# # addr   = "0xe6717fb7c9d44706bf8ce8a651e25c0a7902d32cb0ff40c0976251ce8ac25655"
+[dependencies.zo_staking]
+local = "./local_dependencies/zo-staking-contract"
 
 [dependencies.CetusClmm]
 git    = "https://github.com/CetusProtocol/cetus-clmm-interface.git"
 subdir = "sui/cetus_clmm"
 rev    = "mainnet-v1.48.4"
-# rev = "mainnet-v1.25.0"
-# addr     = "0xc6faf3703b0e8ba9ed06b7851134bbbe7565eb35ff823fd78432baa4cbeaa12e"
 override = true
 
-# [dependencies.suilend]
-# git    = "https://github.com/solendprotocol/suilend"
-# rev    = "mainnet"
-# subdir = "contracts/suilend"
-# addr   = "0x21f544aff826a48e6bd5364498454d8487c4a90f84995604cd5c947c06b596c3"
-
-# [dependencies.BluefinSpot]
-# git    = "https://github.com/fireflyprotocol/bluefin-spot-contract-interface.git"
-# subdir = ""
-# rev    = "main"
-# # addr   = "0x6c796c3ab3421a68158e0df18e4657b2827b1f8fed5ed4b82dba9c935988711b"
-
-# [dependencies.mmt_v3]
-# git    = "https://github.com/mmt-finance/mmt-contract-interface.git"
-# rev    = "mainnet-v1.1.3"
-# subdir = "mmt_v3"
-# addr   = "0x70285592c97965e811e0c6f98dccc3a9c2b4ad854b3594faab9597ada267b860"
-
 [dependencies.lending_core]
-git = "https://github.com/Sui-Volo/volo-smart-contracts.git"
-subdir = "volo-vault/local_dependencies/protocol/lending_core"
-rev = "main"
+local = "./local_dependencies/protocol/lending_core"
 
 [dependencies.Switchboard]
-# git = "https://github.com/Sui-Volo/vault-dependencies"
-# rev = "main"
-# subdir = "on_demand"
-git = "https://github.com/Sui-Volo/volo-smart-contracts.git"
-subdir = "volo-vault/local_dependencies/switchboard_sui/on_demand"
-rev = "main"
-
+local = "./local_dependencies/switchboard_sui/on_demand"
 
 [dependencies.suilend]
-# git = "https://github.com/Sui-Volo/vault-dependencies"
-# rev = "main"
-# subdir = "suilend_d/suilend"
-git = "https://github.com/Sui-Volo/volo-smart-contracts.git"
-subdir = "volo-vault/local_dependencies/suilend_d/suilend"
-rev = "main"
-
-# [dependencies.CetusClmm]
-# local = "./local_dependencies/cetus-clmm-interface/sui/cetus_clmm"
-
-# [dependencies.BluefinSpot]
-# local = "./local_dependencies/bluefin-spot-contract-interface"
+local = "./local_dependencies/suilend_d/suilend"
 
 # MMT V3 uses local dependencies because we need to remove some test functions with errors
 [dependencies.mmt_v3]
-# git = "https://github.com/Sui-Volo/vault-dependencies"
-# rev = "main"
-# subdir = "mmt_v3"
-git = "https://github.com/Sui-Volo/volo-smart-contracts.git"
-subdir = "volo-vault/local_dependencies/mmt_v3"
-rev = "main"
-
-# [dev-dependencies.CetusClmm]
-# git      = "https://github.com/CetusProtocol/cetus-clmm-interface.git"
-# subdir   = "sui/cetus_clmm"
-# rev      = "mainnet-v1.25.0"
-# # addr     = "0xc6faf3703b0e8ba9ed06b7851134bbbe7565eb35ff823fd78432baa4cbeaa12e"
-# override = true
-
+local = "./local_dependencies/mmt_v3"
 
 [addresses]
-volo_vault = "0xcd86f77503a755c48fe6c87e1b8e9a137ec0c1bf37aac8878b6083262b27fefa"
-# switchboard  = "0xc3c7e6eb7202e9fb0389a2f7542b91cc40e4f7a33c02554fec11c4c92f938ea3"
-# bluefin_spot = "0x3492c874c1e3b3e2984e8c41b589e642d4d0a5d6459e5a9cfc2d52fd7c89c267"
-# mmt_v3       = "0x70285592c97965e811e0c6f98dccc3a9c2b4ad854b3594faab9597ada267b860"
-# lending_core = "0xd899cf7d2b5db716bd2cf55599fb0d5ee38a3061e7b6bb6eebf73fa5bc4c81ca"
-# suilend      = "0xf95b06141ed4a174f239417323bde3f209b972f5930d8521ea38a52aff3a6ddf"
-# cetus_clmm   = "0x1eabed72c53feb3805120a081dc15963c204dc8d091542592abaf7a35689b2fb"
-
-
-# Named addresses will be accessible in Move as `@name`. They're also exported:
-# for example, `std = "0x1"` is exported by the Standard Library.
-# alice = "0xA11CE"
-
-
-# override = true
-# The dev-dependencies section allows overriding dependencies for `--test` and
-# `--dev` modes. You can introduce test-only dependencies here.
-# Local = { local = "../path/to/dev-build" }
-
-[dev-addresses]
-# The dev-addresses section allows overwriting named addresses for the `--test`
-# and `--dev` modes.
-# alice = "0xB0B"
-
-
-# Sui and Suilend have conflicts in "MoveStdLib" and "Pyth"
-# [dependencies.MoveStdlib]
-# git      = "https://github.com/MystenLabs/sui.git"
-# rev      = "mainnet"
-# subdir   = "crates/sui-framework/packages/move-stdlib"
-# override = true
+volo_vault = "0x0"
+sui_system = "0x3"

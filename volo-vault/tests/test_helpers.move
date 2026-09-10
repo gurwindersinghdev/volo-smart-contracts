@@ -18,9 +18,9 @@ const MOCK_AGGREGATOR_BTC: address = @0xf;
 public fun set_aggregators(s: &mut Scenario, clock: &mut Clock, config: &mut OracleConfig) {
     let owner = s.sender();
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
-    let usdc_asset_type = type_name::get<USDC_TEST_COIN>().into_string();
-    let btc_asset_type = type_name::get<BTC_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
+    let usdc_asset_type = type_name::with_defining_ids<USDC_TEST_COIN>().into_string();
+    let btc_asset_type = type_name::with_defining_ids<BTC_TEST_COIN>().into_string();
 
     s.next_tx(owner);
     {
@@ -57,9 +57,9 @@ public fun set_prices(
 ) {
     let owner = s.sender();
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
-    let usdc_asset_type = type_name::get<USDC_TEST_COIN>().into_string();
-    let btc_asset_type = type_name::get<BTC_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
+    let usdc_asset_type = type_name::with_defining_ids<USDC_TEST_COIN>().into_string();
+    let btc_asset_type = type_name::with_defining_ids<BTC_TEST_COIN>().into_string();
 
     s.next_tx(owner);
     {

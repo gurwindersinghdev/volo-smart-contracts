@@ -6,7 +6,7 @@ public struct DepositRequest has copy, drop, store {
     request_id: u64, // Self incremented id (start from 0)
     // ---- Receipt Info ---- //
     receipt_id: address, // Receipt object address
-    recipient: address, // Recipient address (only used for check when "with_lock" is true)
+    recipient: address, // Address that created the deposit (ctx.sender()); the buffered coin is refunded here if the request is cancelled
     // ---- Vault Info ---- //
     vault_id: address, // Vault address
     // ---- Deposit Info ---- //

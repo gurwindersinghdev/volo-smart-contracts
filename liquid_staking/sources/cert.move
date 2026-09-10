@@ -86,6 +86,18 @@ module liquid_staking::cert {
         coin::from_balance(minted_balance, ctx)
     }
 
+    #[test_only]
+    public fun mint_coin_for_testing(
+        metadata: &mut Metadata<CERT>, shares: u64, ctx: &mut TxContext
+    ): Coin<CERT> {
+        mint(metadata, shares, ctx)
+    }
+
+    #[test_only]
+    public fun mint_balance_for_testing(metadata: &mut Metadata<CERT>, shares: u64): Balance<CERT> {
+        balance::increase_supply(&mut metadata.total_supply, shares)
+    }
+
     /// Pool can burn coins
     public(package) fun burn_coin(
         metadata: &mut Metadata<CERT>, coin: Coin<CERT>
@@ -98,6 +110,23 @@ module liquid_staking::cert {
     public(package) fun burn_balance(metadata: &mut Metadata<CERT>, balance: Balance<CERT>): u64 {
         assert_version(metadata);
         balance::decrease_supply(&mut metadata.total_supply, balance)
+    }
+
+    #[test_only]
+    public fun burn_coin_for_testing(metadata: &mut Metadata<CERT>, cert: Coin<CERT>): u64 {
+        burn_coin(metadata, cert)
+    }
+
+    #[test_only]
+    public fun burn_balance_for_testing(metadata: &mut Metadata<CERT>, balance: Balance<CERT>): u64 {
+        balance::decrease_supply(&mut metadata.total_supply, balance)
+    }
+
+    #[test_only]
+    public fun get_total_supply_for_testing(metadata: Metadata<CERT>): Supply<CERT> {
+        let Metadata { id, version:_version, total_supply } = metadata;
+        id.delete();
+        total_supply
     }
 
     /* Migration stuff */
@@ -113,9 +142,31 @@ module liquid_staking::cert {
         metadata.version = VERSION;
     }
 
+    #[test_only]
+    public fun test_migrate(metadata: &mut Metadata<CERT>, owner_cap: &OwnerCap) {
+        migrate(metadata, owner_cap);
+    }
+
+    #[test_only]
+    public fun test_update_version(metadata: &mut Metadata<CERT>, version: u64) {
+        metadata.version = version;
+    }
+
     /// check version before interaction with metadata
     /// to interact with package version of metadata must be equal to package version
     fun assert_version(metadata: &Metadata<CERT>) {
         assert!(metadata.version == VERSION, E_INCOMPATIBLE_VERSION);
     }
+
+    #[test_only]
+    public fun test_assert_version(metadata: &Metadata<CERT>) {
+        assert_version(metadata);
+    }
+
+    #[test_only]
+    /// Wrapper of module initializer for testing
+    public fun test_init(ctx: &mut TxContext) {
+        init(CERT {}, ctx)
+    }
+
 }

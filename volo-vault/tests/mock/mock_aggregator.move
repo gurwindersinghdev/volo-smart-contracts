@@ -25,7 +25,16 @@ public fun create_mock_aggregator(ctx: &mut TxContext): Aggregator {
 }
 
 public fun set_current_result(aggregator: &mut Aggregator, price: u128, timestamp_ms: u64) {
-    let result = decimal::new(price, false);
+    set_current_result_with_neg(aggregator, price, false, timestamp_ms);
+}
+
+public fun set_current_result_with_neg(
+    aggregator: &mut Aggregator,
+    price: u128,
+    neg: bool,
+    timestamp_ms: u64,
+) {
+    let result = decimal::new(price, neg);
 
     let min_timestamp_ms = timestamp_ms;
     let max_timestamp_ms = timestamp_ms;

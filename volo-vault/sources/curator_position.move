@@ -7,6 +7,7 @@ use sui::bag::{Self, Bag};
 use sui::balance::{Self, Balance};
 use sui::clock::Clock;
 use sui::coin::Coin;
+use sui::dynamic_field as df;
 use sui::event::emit;
 use sui::table::{Self, Table};
 use volo_vault::vault::{Self, AdminCap, OperatorCap, Vault, Operation};
@@ -14,7 +15,7 @@ use volo_vault::vault_oracle::{Self, OracleConfig};
 use volo_vault::vault_utils;
 
 // const VERSION: u64 = 1;
-const VERSION: u64 = 3;
+const VERSION: u64 = 4;
 
 const DEFAULT_VALUE_SUBMISSION_MIN_INTERVAL: u64 = 10 * 60 * 1_000; // 10 minutes
 const MINIMUM_POSITION_VALUE_VALID_TIME: u64 = 60 * 60 * 1_000; // 1 hour
@@ -31,6 +32,9 @@ const ERR_SAME_CURATOR_ADDRESS: u64 = 8_009;
 const ERR_VALUE_SUBMISSION_TOO_LATE: u64 = 8_010;
 const ERR_CURATOR_POSITION_NOT_PAIRED_WITH_VAULT: u64 = 8_011;
 const ERR_POSITION_VALUE_VALID_TIME_TOO_SHORT: u64 = 8_012;
+const ERR_INVALID_CURATOR_ASSET_TYPE: u64 = 8_013;
+const ERR_VAULT_ALREADY_HAS_CURATOR_POSITION: u64 = 8_014;
+const ERR_CURATOR_POSITION_NOT_FOUND: u64 = 8_015;
 
 // --------------------- Events --------------------- //
 
@@ -118,6 +122,12 @@ public struct ValueSubmissionMinIntervalSet has copy, drop {
     value_submission_min_interval: u64,
 }
 
+// ^(v1.4 upgrade - new)
+public struct VaultCuratorPositionBound has copy, drop {
+    vault_id: address,
+    curator_position_id: address,
+}
+
 // --------------------- Structs --------------------- //
 
 public struct CuratorCap has key, store {
@@ -152,6 +162,15 @@ public struct CuratorPositionValue has copy, drop, store {
     position_value_updated: u64,
     position_value_valid_time: u64,
     valid: bool,
+}
+
+// ^(v1.4 upgrade - new)
+// Dynamic field key on `CuratorConfig.id`: Vault ID -> CuratorPosition ID.
+// Its presence marks that the vault already has a curator position, so each
+// vault can have at most one. Positions created before this upgrade must be
+// backfilled via `register_vault_curator_position`.
+public struct VaultCuratorPositionKey has copy, drop, store {
+    vault_id: address,
 }
 
 // --------------------- Init --------------------- //
@@ -265,6 +284,9 @@ public fun create_curator_position<PrincipalCoinType>(
         id: id,
     };
 
+    // ^(v1.4 upgrade - new) Each vault can have at most one curator position
+    self.bind_vault_curator_position(vault_id, id_address);
+
     // Init curator position info
     self.curator_position_to_vault.add(id_address, vault_id);
     self.curator_position_to_curator_caps.add(id_address, vector::singleton(curator_cap_id));
@@ -297,6 +319,41 @@ public fun create_curator_position<PrincipalCoinType>(
     });
 
     curator_position
+}
+
+// ^(v1.4 upgrade - new)
+fun bind_vault_curator_position(
+    self: &mut CuratorConfig,
+    vault_id: address,
+    curator_position_id: address,
+) {
+    let key = VaultCuratorPositionKey { vault_id: vault_id };
+    assert!(!df::exists_(&self.id, key), ERR_VAULT_ALREADY_HAS_CURATOR_POSITION);
+    df::add(&mut self.id, key, curator_position_id);
+
+    emit(VaultCuratorPositionBound {
+        vault_id: vault_id,
+        curator_position_id: curator_position_id,
+    });
+}
+
+// ^(v1.4 upgrade - new)
+// Backfill for curator positions created before the one-position-per-vault
+// limit: registers an existing position's vault binding so no new position
+// can be created for that vault. Called once per pre-upgrade position.
+public(package) fun register_vault_curator_position(
+    self: &mut CuratorConfig,
+    curator_position_id: address,
+) {
+    self.check_version();
+
+    assert!(
+        self.curator_position_to_vault.contains(curator_position_id),
+        ERR_CURATOR_POSITION_NOT_FOUND,
+    );
+    let vault_id = self.curator_position_to_vault[curator_position_id];
+
+    self.bind_vault_curator_position(vault_id, curator_position_id);
 }
 
 public(package) fun add_curator_cap(self: &mut CuratorConfig, curator_cap_id: address) {
@@ -489,8 +546,10 @@ public fun update_curator_position_value<PrincipalCoinType>(
     clock: &Clock,
 ) {
     let now = clock.timestamp_ms();
+    let curator_asset_type = vault_utils::parse_key<CuratorPosition>(0);
 
     assert!(self.curator_position_to_vault[curator_position_id] == vault.vault_id(), ERR_CURATOR_POSITION_NOT_PAIRED_WITH_VAULT);
+    assert!(asset_type == curator_asset_type, ERR_INVALID_CURATOR_ASSET_TYPE);
     self.assert_valid_curator_position_value(curator_position_id, now);
 
     let principal_based_position_value = self.position_value(curator_position_id);
@@ -759,6 +818,10 @@ public fun position_id(curator_position: &CuratorPosition): address {
     curator_position.id.to_address()
 }
 
+public fun curator_position_vault_id(self: &CuratorConfig, curator_position_id: address): address {
+    self.curator_position_to_vault[curator_position_id]
+}
+
 public fun curator_cap_paired_position(self: &CuratorConfig, curator_cap_id: address): address {
     self.curator_position_pairs[curator_cap_id]
 }
@@ -855,6 +918,17 @@ public fun create_curator_config_for_testing(ctx: &mut TxContext): CuratorConfig
         curator_position_to_curator_caps: table::new<address, vector<address>>(ctx),
         curator_position_claimable_balance: bag::new(ctx),
     }
+}
+
+#[test_only]
+public fun unbind_vault_curator_position_for_testing(
+    self: &mut CuratorConfig,
+    vault_id: address,
+) {
+    df::remove<VaultCuratorPositionKey, address>(
+        &mut self.id,
+        VaultCuratorPositionKey { vault_id: vault_id },
+    );
 }
 
 #[test_only]

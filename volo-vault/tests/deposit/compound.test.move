@@ -31,8 +31,9 @@ public fun test_compound_deposit_by_operator() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     // Set mock aggregator and price (1SUI = 2U)
     s.next_tx(OWNER);

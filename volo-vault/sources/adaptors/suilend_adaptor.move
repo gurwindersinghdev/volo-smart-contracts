@@ -7,6 +7,7 @@ use suilend::obligation::{Obligation};
 use suilend::reserve::{Self};
 use volo_vault::vault::Vault;
 
+// Suilend reports USD as a 1e18-scaled Decimal; the vault's USD convention is 9 decimals.
 const DECIMAL: u256 = 1_000_000_000;
 
 // @dev Need to update the price of the reserve before calling this function

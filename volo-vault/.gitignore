@@ -1,0 +1,9 @@
+build/*
+.trace
+**/.DS_Store
+.DS_Store
+traces/*
+*/build/*
+ai-audit/
+deposit-cap/
+vault-viewer/
