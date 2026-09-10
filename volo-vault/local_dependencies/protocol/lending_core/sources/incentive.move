@@ -1,4 +1,7 @@
 #[allow(unused_field)]
+// Deprecated: `incentive` is kept for upgrade compatibility only.
+// It no longer distributes rewards, and no new reward features will be added here.
+// All reward functionality is implemented in `lending_core::incentive_v3`.
 module lending_core::incentive {
     use std::vector;
     use std::type_name;
@@ -16,7 +19,7 @@ module lending_core::incentive {
     use lending_core::utils;
     use lending_core::ray_math;
     use lending_core::safe_math;
-    use lending_core::storage::{Self, Storage};
+    use lending_core::storage::{Self, Storage, OwnerCap};
     use lending_core::error::{Self};
     use lending_core::account::{Self, AccountCap};
 
@@ -336,6 +339,19 @@ module lending_core::incentive {
         claim_balance
     }
 
+    public entry fun admin_withdraw_incentive_bal<CoinType>(
+        _: &OwnerCap,
+        storage: &Storage,
+        bal: &mut IncentiveBal<CoinType>,
+        recipient: address,
+        ctx: &mut TxContext
+    ) {
+        storage::version_verification(storage);
+        let amount = balance::value(&bal.balance);
+        let withdrawn = balance::split(&mut bal.balance, amount);
+        transfer::public_transfer(coin::from_balance(withdrawn, ctx), recipient)
+    }
+
     public fun get_pool_count(incentive: &Incentive, asset: u8): u64 {
         let pool_count = 0;
         if (table::contains(&incentive.pools, asset)) {
@@ -393,6 +409,8 @@ module lending_core::incentive {
 
         (coin_types, user_earned_rewards, oracle_ids)
     }
+
+    #[test_only]
 
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {

@@ -9,6 +9,8 @@ use sui::test_scenario;
 use volo_vault::btc_test_coin::BTC_TEST_COIN;
 use volo_vault::init_vault;
 use volo_vault::operation;
+use volo_vault::receipt::{Self};
+use volo_vault::receipt_cancellation;
 use volo_vault::sui_test_coin::SUI_TEST_COIN;
 use volo_vault::usdc_test_coin::USDC_TEST_COIN;
 use volo_vault::vault::{Self, Vault, Operation, OperatorCap};
@@ -27,6 +29,7 @@ public fun test_add_new_defi_asset() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -75,6 +78,7 @@ public fun test_remove_defi_asset_support() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -140,6 +144,7 @@ public fun test_remove_defi_asset_support_fail_not_exist() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -175,6 +180,7 @@ public fun test_remove_defi_asset_support_fail_value_already_updated() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -241,6 +247,7 @@ public fun test_add_new_coin_type_asset() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -263,10 +270,10 @@ public fun test_add_new_coin_type_asset() {
     {
         let vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
-        let coin_asset_type = type_name::get<USDC_TEST_COIN>().into_string();
+        let coin_asset_type = type_name::with_defining_ids<USDC_TEST_COIN>().into_string();
         assert!(vault.contains_asset_type(coin_asset_type));
 
-        let wrong_asset_type = type_name::get<BTC_TEST_COIN>().into_string();
+        let wrong_asset_type = type_name::with_defining_ids<BTC_TEST_COIN>().into_string();
         assert!(!vault.contains_asset_type(wrong_asset_type));
 
         test_scenario::return_shared(vault);
@@ -286,6 +293,7 @@ public fun test_borrow_defi_asset_not_return() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -333,6 +341,7 @@ public fun test_borrow_defi_asset_then_return() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -371,6 +380,7 @@ public fun test_borrow_defi_asset_fail_not_exist() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -400,6 +410,7 @@ public fun test_borrow_defi_asset_fail_already_borrowed() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -429,7 +440,6 @@ public fun test_borrow_defi_asset_fail_already_borrowed() {
     s.end();
 }
 
-
 #[test, expected_failure(abort_code = vault::ERR_INVALID_COIN_ASSET_TYPE, location = vault)]
 public fun test_add_coin_type_asset_fail_same_as_principal_asset() {
     let mut s = test_scenario::begin(OWNER);
@@ -439,6 +449,7 @@ public fun test_add_coin_type_asset_fail_same_as_principal_asset() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -470,6 +481,7 @@ public fun test_remove_coin_type_asset() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -509,7 +521,7 @@ public fun test_remove_coin_type_asset() {
     {
         let vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
-        let coin_asset_type = type_name::get<USDC_TEST_COIN>().into_string();
+        let coin_asset_type = type_name::with_defining_ids<USDC_TEST_COIN>().into_string();
         assert!(!vault.contains_asset_type(coin_asset_type));
 
         test_scenario::return_shared(vault);
@@ -528,6 +540,7 @@ public fun test_remove_coin_type_asset_fail_asset_type_not_exist() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -576,6 +589,7 @@ public fun test_remove_coin_type_asset_fail_same_as_principal_asset() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -604,6 +618,92 @@ public fun test_remove_coin_type_asset_fail_same_as_principal_asset() {
             &operation,
             &cap,
             &mut vault,
+        );
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(operation);
+        s.return_to_sender(cap);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[
+    test,
+    expected_failure(
+        abort_code = receipt_cancellation::ERR_RECEIPT_CAN_BE_CANCELLED,
+        location = receipt_cancellation,
+    ),
+]
+public fun test_add_new_defi_asset_receipt_cancellation() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+    init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let operation = s.take_shared<Operation>();
+        let cap = s.take_from_sender<OperatorCap>();
+
+        let mut receipt = receipt::create_receipt(vault.vault_id(), s.ctx());
+
+        receipt_cancellation::add_dynamic_field_to_receipt(&mut receipt);
+        receipt_cancellation::add_dynamic_field_to_vault(&mut vault, s.ctx());
+
+        operation::add_receipt_as_defi_asset(
+            &operation,
+            &cap,
+            &mut vault,
+            0,
+            receipt,
+        );
+
+        test_scenario::return_shared(vault);
+        test_scenario::return_shared(operation);
+        s.return_to_sender(cap);
+    };
+
+    clock.destroy_for_testing();
+    s.end();
+}
+
+#[test]
+public fun test_add_new_defi_asset_receipt_cancellation_2() {
+    let mut s = test_scenario::begin(OWNER);
+
+    let mut clock = clock::create_for_testing(s.ctx());
+
+    init_vault::init_vault(&mut s, &mut clock);
+    init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
+    init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
+
+    s.next_tx(OWNER);
+    {
+        let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
+        let operation = s.take_shared<Operation>();
+        let cap = s.take_from_sender<OperatorCap>();
+
+        let mut receipt = receipt::create_receipt(vault.vault_id(), s.ctx());
+
+        receipt_cancellation::add_dynamic_field_to_receipt(&mut receipt);
+        receipt_cancellation::add_dynamic_field_to_vault(&mut vault, s.ctx());
+
+        receipt_cancellation::set_receipt_can_not_be_cancelled(&mut receipt, &mut vault);
+
+        operation::add_receipt_as_defi_asset(
+            &operation,
+            &cap,
+            &mut vault,
+            0,
+            receipt,
         );
 
         test_scenario::return_shared(vault);

@@ -34,4 +34,19 @@ module liquid_staking::manage {
     public(package) fun set_paused(self: &mut Manage, paused: bool) {
         self.paused = paused;
     }
+
+    #[test_only]
+    public fun is_paused(self: &Manage): bool {
+        self.paused
+    }
+
+    #[test_only]
+    public fun create_for_testing(version: u64, paused: bool): Manage {
+        Manage { version, paused }
+    }
+
+    #[test_only]
+    public fun destroy_for_testing(manage: Manage) {
+        let Manage { version: _, paused: _ } = manage;
+    }
 }

@@ -132,6 +132,7 @@ module liquid_staking::stake_pool {
 
     #[allow(lint(self_transfer, share_owned))]
     public(package) fun create_stake_pool(ctx: &mut TxContext) {
+        // assert!(metadata.get_total_supply_value() == 0, 0);
         let validator_pool = validator_pool::new(ctx);
         let (admin_cap, stake_pool) = create_lst_with_validator_pool(
             validator_pool,
@@ -287,13 +288,12 @@ module liquid_staking::stake_pool {
         self.manage.check_version();
         self.manage.check_not_paused();
         self.refresh(metadata, system_state, ctx);
+        assert!(lst.value() >= MIN_STAKE_AMOUNT, EUnderMinAmount);
 
         let old_sui_supply = (self.total_sui_supply() as u128);
         let old_lst_supply = (total_lst_supply(metadata) as u128);
 
         let sui_amount_out = self.lst_amount_to_sui_amount(metadata, lst.value());
-        assert!(sui_amount_out >= MIN_STAKE_AMOUNT, EUnderMinAmount);
-
         let mut sui = self.validator_pool.split_n_sui(system_state, sui_amount_out, ctx);
 
         // deduct fee
@@ -478,12 +478,11 @@ module liquid_staking::stake_pool {
         ctx: &mut TxContext
     ) {
         self.manage.check_version();
-        let before_balance = self.boosted_balance.value();
-        self.boosted_balance.join(coin::into_balance(coin.split(amount, ctx)));
         emit(DepositBoostedBalanceEvent {
-            before_balance,
+            before_balance: self.boosted_balance.value(),
             after_balance: self.boosted_balance.value()
         });
+        self.boosted_balance.join(coin::into_balance(coin.split(amount, ctx)));
     }
 
     public fun rebalance(
@@ -659,5 +658,16 @@ module liquid_staking::stake_pool {
             / (total_lst_supply as u128);
 
         sui_amount as u64
+    }
+
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(STAKE_POOL {}, ctx);
+        create_stake_pool(ctx);
+    }
+
+    #[test_only]
+    public fun mut_validator_pool(self: &mut StakePool): &mut ValidatorPool {
+        &mut self.validator_pool
     }
 }

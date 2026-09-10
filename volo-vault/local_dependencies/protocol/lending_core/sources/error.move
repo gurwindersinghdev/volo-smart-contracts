@@ -10,6 +10,7 @@ module lending_core::error {
     public fun invalid_coin_type(): u64 {1505}
     public fun insufficient_balance(): u64 {1506}
     public fun invalid_value(): u64 {1507}
+    public fun invalid_function_call(): u64 {1508}
 
     public fun user_is_unhealthy(): u64 {1600}
     public fun user_have_no_collateral(): u64 {1601}
@@ -18,6 +19,7 @@ module lending_core::error {
     public fun exceeded_maximum_deposit_cap(): u64 {1604}
     public fun exceeded_maximum_borrow_cap(): u64 {1605}
     public fun user_is_healthy(): u64 {1606}
+    public fun not_liquidatable(): u64 {1607}
 
     public fun no_more_reserves_allowed(): u64 {1700}
     public fun duplicate_reserve(): u64 {1701}
@@ -36,4 +38,11 @@ module lending_core::error {
     public fun rule_not_found(): u64 {2102}
     public fun invalid_funds(): u64 {2103}
     public fun invalid_option(): u64 {2104}
+
+    public fun duplicate_emode(): u64 {3000}
+    public fun ineligible_for_emode(): u64 {3001}
+    public fun not_in_emode(): u64 {3002}
+    public fun emode_is_not_active(): u64 {3003}
+
+    public fun unmatched_market_id(): u64 {3100}
 }

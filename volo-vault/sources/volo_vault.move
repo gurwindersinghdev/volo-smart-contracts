@@ -20,7 +20,7 @@ use volo_vault::withdraw_request::{Self, WithdrawRequest};
 
 // ---------------------  Constants  ---------------------//
 
-const VERSION: u64 = 6;
+const VERSION: u64 = 10;
 
 const VAULT_NORMAL_STATUS: u8 = 0;
 const VAULT_DURING_OPERATION_STATUS: u8 = 1;
@@ -145,6 +145,7 @@ public struct Vault<phantom T> has key, store {
     op_value_update_record: OperationValueUpdateRecord,
     // ---- Dynamic Field ---- //
     // - inner_assets: Bag
+    // - withdraw_swap_requests: Table<u64, WithdrawSwapRequest>,
 }
 
 public struct RequestBuffer<phantom T> has store {
@@ -1471,7 +1472,8 @@ public(package) fun get_total_usd_value<PrincipalCoinType>(
     total_usd_value
 }
 
-// * @dev Just get the total usd value without checking the update time (not correct & latest value)
+// * @dev Read the recorded total usd value without a staleness check. The value may be out of
+// * date; callers that need a fresh value must refresh the asset values first.
 public fun get_total_usd_value_without_update<PrincipalCoinType>(
     self: &Vault<PrincipalCoinType>,
 ): u256 {
@@ -1543,6 +1545,19 @@ public(package) fun contains_asset_type<PrincipalCoinType>(
     self.inner_assets().contains(asset_type)
 }
 
+public(package) fun asset_types<PrincipalCoinType>(
+    self: &Vault<PrincipalCoinType>,
+): &vector<String> {
+    &self.asset_types
+}
+
+public(package) fun contains_defi_asset_of_type<PrincipalCoinType, AssetType: key + store>(
+    self: &Vault<PrincipalCoinType>,
+    asset_type: String,
+): bool {
+    self.inner_assets().contains_with_type<String, AssetType>(asset_type)
+}
+
 public(package) fun set_new_asset_type<PrincipalCoinType>(
     self: &mut Vault<PrincipalCoinType>,
     asset_type: String,
@@ -1599,6 +1614,35 @@ public(package) fun remove_defi_asset_support<PrincipalCoinType, AssetType: key 
     emit(DefiAssetRemoved {
         vault_id: self.vault_id(),
         asset_type: asset_type,
+    });
+
+    self.inner_assets_mut().remove<String, AssetType>(asset_type)
+}
+
+// ^(pyth migration - new)
+// `remove_defi_asset_support` needs a zeroed value, which only a value update can produce - out
+// of reach once a feed is gone, and the stale asset then wedges every `get_total_usd_value`.
+public(package) fun force_remove_defi_asset<PrincipalCoinType, AssetType: key + store>(
+    self: &mut Vault<PrincipalCoinType>,
+    idx: u8,
+): AssetType {
+    self.check_version();
+    // Mid-operation the asset may be recorded as borrowed, and dropping it would leave
+    // `op_value_update_record` pointing at an asset type that no longer exists.
+    self.assert_not_during_operation();
+
+    let asset_type = vault_utils::parse_key<AssetType>(idx);
+
+    let (contains, index) = self.asset_types.index_of(&asset_type);
+    assert!(contains, ERR_ASSET_TYPE_NOT_FOUND);
+    self.asset_types.remove(index);
+
+    self.assets_value.remove(asset_type);
+    self.assets_value_updated.remove(asset_type);
+
+    emit(DefiAssetRemoved {
+        vault_id: self.vault_id(),
+        asset_type,
     });
 
     self.inner_assets_mut().remove<String, AssetType>(asset_type)
@@ -1788,7 +1832,7 @@ public(package) fun return_coin_type_asset<PrincipalCoinType, AssetType>(
 // ---------------------  Deposit & Withdraw Fee  ---------------------//
 
 // Retrieve deposit & withdraw fee from the vault in the form of principal coin
-// Only called by the admin
+// Called by the admin (manage::retrieve_deposit_withdraw_fee) or a paired operator (manage::retrieve_deposit_withdraw_fee_by_operator)
 public(package) fun retrieve_deposit_withdraw_fee<PrincipalCoinType>(
     self: &mut Vault<PrincipalCoinType>,
     amount: u64,
@@ -2007,6 +2051,14 @@ public fun locking_time_for_cancel_request<PrincipalCoinType>(
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) {
     init(ctx);
+}
+
+#[test_only]
+public fun set_version_for_testing<PrincipalCoinType>(
+    self: &mut Vault<PrincipalCoinType>,
+    version: u64,
+) {
+    self.version = version;
 }
 
 #[test_only]

@@ -1,6 +1,7 @@
 #[allow(deprecated_usage)]
 module volo_vault::operation;
 
+use lending_core::account::AccountCap as NaviAccountCap;
 use std::ascii::String;
 use std::type_name::{Self, TypeName};
 use sui::address;
@@ -9,17 +10,21 @@ use sui::balance::{Self, Balance};
 use sui::clock::Clock;
 use sui::coin::Coin;
 use sui::event::emit;
+use volo_vault::curator_position::{Self as curator_position, CuratorConfig, CuratorPosition};
+use volo_vault::navi_adaptor;
 use volo_vault::receipt::Receipt;
 use volo_vault::receipt_cancellation;
 use volo_vault::reward_manager::RewardManager;
+use volo_vault::swap_request;
 use volo_vault::vault::{Self, Vault, Operation, OperatorCap};
-use volo_vault::vault_oracle::OracleConfig;
+use volo_vault::vault_oracle::{Self, OracleConfig};
 use volo_vault::vault_utils;
 
 // ---------------------  Constants  ---------------------//
 
 const VAULT_NORMAL_STATUS: u8 = 0;
 const VAULT_DURING_OPERATION_STATUS: u8 = 1;
+const RATE_SCALING: u64 = 10_000;
 
 // --------------------- Errors  ---------------------//
 
@@ -28,6 +33,10 @@ const ERR_ASSETS_LENGTH_MISMATCH: u64 = 1_002;
 const ERR_ASSETS_NOT_RETURNED: u64 = 1_003;
 const ERR_VAULT_ID_MISMATCH: u64 = 1_004;
 const ERR_INVALID_DEFI_ASSET_TYPE: u64 = 1_005;
+const ERR_CURATOR_POSITION_VAULT_MISMATCH: u64 = 1_006;
+const ERR_REQUEST_NOT_FOUND: u64 = 1_007;
+const ERR_TARGET_ASSET_AMOUNT_TOO_LOW: u64 = 1_008;
+const ERR_TARGET_ASSET_TYPE_MISMATCH: u64 = 1_009;
 
 // ----------------------  Events  ----------------------------//
 
@@ -57,6 +66,25 @@ public struct OperationValueUpdateChecked has copy, drop {
     total_usd_value_before: u256,
     total_usd_value_after: u256,
     loss: u256,
+}
+
+public struct WithdrawWithSwapBag {
+    vault_id: address,
+    request_id: u64,
+    target_asset_type: String,
+    target_asset_min_amount_out: u64,
+    slippage_bps: u64,
+    recipient: address,
+}
+
+public struct WithdrawWithSwapExecuted has copy, drop {
+    vault_id: address,
+    request_id: u64,
+    recipient: address,
+    target_asset_type: String,
+    target_asset_min_amount_out: u64,
+    slippage_bps: u64,
+    target_asset_amount: u64,
 }
 
 // ---------------------  Vault status check  ---------------------//
@@ -212,6 +240,12 @@ public fun end_op_with_bag_v2<T, CoinType, DefiAssetType: key + store>(
             } else {
                 let defi_asset = defi_assets.remove<String, DefiAssetType>(defi_asset_type_string);
                 vault.return_defi_asset(defi_asset_type_string, defi_asset);
+
+                // Returning a NAVI account cap consumes any pre-op partial sync: the op's value
+                // check can only pass after a full post-op re-valuation.
+                if (defi_asset_type == type_name::get<NaviAccountCap>()) {
+                    navi_adaptor::reset_navi_market_sync(vault, defi_asset_type_string);
+                };
             }
         } else {
             assert!(false, ERR_INVALID_DEFI_ASSET_TYPE);
@@ -320,7 +354,6 @@ public fun start_op_with_bag<T, CoinType, ObligationType>(
     _ctx: &mut TxContext,
 ): (Bag, TxBag, TxBagForCheckValueUpdate, Balance<T>, Balance<CoinType>) {
     abort 0
-    
 }
 
 #[allow(dead_code, unused_type_parameter)]
@@ -451,6 +484,10 @@ public fun execute_withdraw<PrincipalCoinType>(
         max_amount_received,
     );
 
+    // Operator may fall back to the legacy (no-swap) path for a withdraw-with-swap
+    // request when the price/slippage is unfavorable. Clean up the swap sidecar if one exists.
+    swap_request::try_delete_withdraw_swap_request(vault, request_id);
+
     if (recipient != address::from_u256(0)) {
         transfer::public_transfer(withdraw_balance.into_coin(ctx), recipient);
     } else {
@@ -486,6 +523,10 @@ public fun batch_execute_withdraw<PrincipalCoinType>(
             max_amount_received[index],
         );
 
+        // Clean up the swap sidecar if this was a withdraw-with-swap request
+        // settled through the legacy (no-swap) fallback path.
+        swap_request::try_delete_withdraw_swap_request(vault, request_id);
+
         if (recipient != address::from_u256(0)) {
             transfer::public_transfer(withdraw_balance.into_coin(ctx), recipient);
         } else {
@@ -506,7 +547,126 @@ public fun cancel_user_withdraw<PrincipalCoinType>(
     vault::assert_operator_not_freezed(operation, cap);
     vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
 
-    vault.cancel_withdraw(clock, request_id, receipt_id, recipient)
+    let cancelled_shares = vault.cancel_withdraw(clock, request_id, receipt_id, recipient);
+
+    // Clean up the corresponding WithdrawSwapRequest if one exists
+    swap_request::try_delete_withdraw_swap_request(vault, request_id);
+
+    cancelled_shares
+}
+
+public fun add_dynamic_field_withdraw_requests<PrincipalCoinType>(
+    operation: &Operation,
+    cap: &OperatorCap,
+    vault: &mut Vault<PrincipalCoinType>,
+    ctx: &mut TxContext,
+) {
+    vault::assert_operator_not_freezed(operation, cap);
+    vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
+
+    swap_request::add_dynamic_field_withdraw_requests(vault, ctx);
+}
+
+public fun execute_withdraw_with_swap<PrincipalCoinType>(
+    operation: &Operation,
+    cap: &OperatorCap,
+    vault: &mut Vault<PrincipalCoinType>,
+    reward_manager: &mut RewardManager<PrincipalCoinType>,
+    clock: &Clock,
+    config: &OracleConfig,
+    request_id: u64,
+    max_amount_received: u64,
+): (Balance<PrincipalCoinType>, WithdrawWithSwapBag) {
+    vault::assert_operator_not_freezed(operation, cap);
+    vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
+
+    reward_manager.update_reward_buffers(vault, clock);
+
+    let withdraw_request = vault.withdraw_request(request_id);
+    reward_manager.update_receipt_reward(vault, withdraw_request.receipt_id());
+
+    let withdraw_swap_requests = swap_request::withdraw_swap_requests(vault);
+    assert!(withdraw_swap_requests.contains(request_id), ERR_REQUEST_NOT_FOUND);
+    let withdraw_swap_request = swap_request::delete_withdraw_swap_request(vault, request_id);
+
+    let target_asset_type = withdraw_swap_request.target_asset_type();
+    let slippage_bps = withdraw_swap_request.slippage_bps();
+
+    let (withdraw_balance, recipient) = vault.execute_withdraw(
+        clock,
+        config,
+        request_id,
+        max_amount_received,
+    );
+
+    let principal_amount = withdraw_balance.value() as u256;
+    let principal_type_string = type_name::with_defining_ids<PrincipalCoinType>().into_string();
+    let principal_price = vault_oracle::get_normalized_asset_price(
+        config,
+        clock,
+        principal_type_string,
+    );
+    let target_price = vault_oracle::get_normalized_asset_price(config, clock, target_asset_type);
+
+    let usd_value = vault_utils::mul_with_oracle_price(principal_amount, principal_price);
+    let expected_target_amount = vault_utils::div_with_oracle_price(usd_value, target_price);
+    let min_amount_out =
+        expected_target_amount * ((RATE_SCALING - slippage_bps) as u256) / (RATE_SCALING as u256);
+
+    (
+        withdraw_balance,
+        WithdrawWithSwapBag {
+            vault_id: vault.vault_id(),
+            request_id,
+            target_asset_type,
+            target_asset_min_amount_out: min_amount_out as u64,
+            slippage_bps,
+            recipient,
+        },
+    )
+}
+
+public fun finish_execute_withdraw_with_swap<PrincipalCoinType, TargetAssetType>(
+    operation: &Operation,
+    cap: &OperatorCap,
+    vault: &mut Vault<PrincipalCoinType>,
+    withdraw_with_swap_hot_potato: WithdrawWithSwapBag,
+    target_asset_coin: Coin<TargetAssetType>,
+) {
+    vault::assert_operator_not_freezed(operation, cap);
+    vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
+
+    let WithdrawWithSwapBag {
+        vault_id,
+        request_id,
+        target_asset_type,
+        target_asset_min_amount_out,
+        slippage_bps,
+        recipient,
+    } = withdraw_with_swap_hot_potato;
+
+    assert!(vault_id == vault.vault_id(), ERR_VAULT_ID_MISMATCH);
+    assert!(
+        target_asset_type == type_name::get<TargetAssetType>().into_string(),
+        ERR_TARGET_ASSET_TYPE_MISMATCH,
+    );
+
+    swap_request::try_delete_withdraw_swap_request(vault, request_id);
+
+    let target_asset_amount = target_asset_coin.value();
+    assert!(target_asset_amount >= target_asset_min_amount_out, ERR_TARGET_ASSET_AMOUNT_TOO_LOW);
+
+    emit(WithdrawWithSwapExecuted {
+        vault_id: vault.vault_id(),
+        request_id,
+        recipient,
+        target_asset_type,
+        target_asset_min_amount_out,
+        slippage_bps,
+        target_asset_amount,
+    });
+
+    transfer::public_transfer(target_asset_coin, recipient);
 }
 
 public fun deposit_by_operator<PrincipalCoinType>(
@@ -562,8 +722,30 @@ public fun add_new_defi_asset<PrincipalCoinType, AssetType: key + store>(
     vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
     // ^v1.1 Upgrade(new)
     assert!(type_name::with_defining_ids<AssetType>() != type_name::with_defining_ids<Receipt>(), ERR_INVALID_DEFI_ASSET_TYPE);
+    assert!(
+        type_name::with_defining_ids<AssetType>() != type_name::with_defining_ids<CuratorPosition>(),
+        ERR_INVALID_DEFI_ASSET_TYPE,
+    );
 
     vault.add_new_defi_asset(idx, asset);
+}
+
+public fun add_curator_position_as_defi_asset<PrincipalCoinType>(
+    operation: &Operation,
+    cap: &OperatorCap,
+    curator_config: &CuratorConfig,
+    vault: &mut Vault<PrincipalCoinType>,
+    curator_position: CuratorPosition,
+) {
+    vault::assert_operator_not_freezed(operation, cap);
+    vault::assert_single_vault_operator_paired(operation, vault.vault_id(), cap);
+    let curator_position_id = curator_position::position_id(&curator_position);
+    assert!(
+        curator_config.curator_position_vault_id(curator_position_id) == vault.vault_id(),
+        ERR_CURATOR_POSITION_VAULT_MISMATCH,
+    );
+
+    vault.add_new_defi_asset(0, curator_position);
 }
 
 public fun add_receipt_as_defi_asset<PrincipalCoinType>(

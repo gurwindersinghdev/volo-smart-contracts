@@ -100,7 +100,7 @@ public fun test_set_new_asset_type_failed_already_exists() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
 
-    let sui_asset_type = type_name::get<SUI_TEST_COIN>().into_string();
+    let sui_asset_type = type_name::with_defining_ids<SUI_TEST_COIN>().into_string();
 
     s.next_tx(OWNER);
     {

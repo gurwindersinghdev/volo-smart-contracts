@@ -18,6 +18,7 @@ const DECIMAL: u256 = 1_000_000_000_000_000_000;
 const SLIPPAGE_BASE: u256 = 10_000; // 10000 = 100%
 
 const ERR_INVALID_POOL_PRICE: u64 = 7_001;
+const ERR_POSITION_POOL_MISMATCH: u64 = 7_002;
 
 public fun update_momentum_position_value<PrincipalCoinType, CoinA, CoinB>(
     vault: &mut Vault<PrincipalCoinType>,
@@ -71,6 +72,11 @@ public fun get_position_token_amounts<CoinA, CoinB>(
     pool: &MomentumPool<CoinA, CoinB>,
     position: &MomentumPosition,
 ): (u64, u64, u128) {
+    // Bind the position to the pool: unlike Cetus (which looks the position up inside
+    // the pool), Momentum amounts are derived from the passed pool's sqrt_price, so an
+    // unrelated same-type pool could otherwise be supplied to skew the valuation.
+    assert!(position.pool_id() == pool.pool_id(), ERR_POSITION_POOL_MISMATCH);
+
     let sqrt_price = pool.sqrt_price();
 
     let lower_tick = position.tick_lower_index();

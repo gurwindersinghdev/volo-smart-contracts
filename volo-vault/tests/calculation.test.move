@@ -146,3 +146,31 @@ public fun test_min_reward_amount_calculation() {
     std::debug::print(&std::ascii::string(b"User reward amount with 10_000_000USD shares"));
     std::debug::print(&vault_utils::mul_with_oracle_price(add_index, 10_000_000 * DECIMALS));
 }
+
+#[test]
+// [TEST-CASE: Should rescale a pyth mantissa to the oracle 10^18 scale.] @test-case CALCULATION-007
+public fun test_to_oracle_decimal() {
+    // Pyth crypto feeds publish expo -8: 1.00000000 -> 1e18.
+    assert!(vault_utils::to_oracle_decimal(100_000_000, 8) == 1_000_000_000_000_000_000);
+    // 0.73698412 SUI/USD.
+    assert!(vault_utils::to_oracle_decimal(73_698_412, 8) == 736_984_120_000_000_000);
+    // 111_000 USD/BTC.
+    assert!(
+        vault_utils::to_oracle_decimal(11_100_000_000_000, 8) == 111_000_000_000_000_000_000_000,
+    );
+
+    // Already at 10^18: identity.
+    assert!(
+        vault_utils::to_oracle_decimal(1_234_567_890_123_456_789, 18) == 1_234_567_890_123_456_789,
+    );
+
+    // Zero exponent means the mantissa is the whole number.
+    assert!(vault_utils::to_oracle_decimal(7, 0) == 7_000_000_000_000_000_000);
+
+    // Finer than 10^18: the extra digits are truncated, not rounded.
+    assert!(vault_utils::to_oracle_decimal(1_999_999_999, 27) == 1);
+    assert!(vault_utils::to_oracle_decimal(999_999_999, 27) == 0);
+
+    // The largest exponent the oracle accepts (MAX_PYTH_EXPO).
+    assert!(vault_utils::to_oracle_decimal(1_000_000_000_000_000_000, 36) == 1);
+}

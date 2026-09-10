@@ -124,6 +124,7 @@ public fun test_add_new_reward_type_without_buffer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -175,6 +176,7 @@ public fun test_add_new_reward_type_with_buffer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -226,6 +228,7 @@ public fun test_create_reward_buffer_distribution() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -292,6 +295,7 @@ public fun test_create_reward_buffer_distribution_fail_already_exists() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -342,6 +346,7 @@ public fun test_add_reward_balance() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -398,7 +403,7 @@ public fun test_add_reward_balance() {
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&reward_indices);
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
         );
 
         test_scenario::return_shared(reward_manager);
@@ -438,7 +443,7 @@ public fun test_add_reward_balance() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 2_000_000_000_000_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 2_000_000_000_000_000_000 * BASE_RATE,
         );
 
         test_scenario::return_shared(reward_manager);
@@ -458,6 +463,7 @@ public fun test_add_reward_balance_with_big_tvl() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -513,7 +519,7 @@ public fun test_add_reward_balance_with_big_tvl() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&reward_indices);
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000 * BASE_RATE);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000 * BASE_RATE);
 
         test_scenario::return_shared(reward_manager);
     };
@@ -551,7 +557,7 @@ public fun test_add_reward_balance_with_big_tvl() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 2_000_000_000 * BASE_RATE);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 2_000_000_000 * BASE_RATE);
 
         test_scenario::return_shared(reward_manager);
     };
@@ -571,6 +577,7 @@ public fun test_add_reward_balance_fail_no_shares() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -669,6 +676,7 @@ public fun test_add_reward_balance_bewteen_two_deposits() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -791,7 +799,7 @@ public fun test_add_reward_balance_bewteen_two_deposits() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
         );
 
         test_scenario::return_shared(reward_manager);
@@ -865,13 +873,13 @@ public fun test_add_reward_balance_bewteen_two_deposits() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
         );
 
         let receipt = s.take_from_sender<Receipt>();
         let vault_receipt_info = vault.vault_receipt_info_mut(receipt.receipt_id());
         let receipt_reward_indices = vault_receipt_info.reward_indices();
-        assert!(receipt_reward_indices.borrow(type_name::get<SUI_TEST_COIN>()) == 0);
+        assert!(receipt_reward_indices.borrow(type_name::with_defining_ids<SUI_TEST_COIN>()) == 0);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -892,14 +900,14 @@ public fun test_add_reward_balance_bewteen_two_deposits() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
         );
 
         let receipt = s.take_from_sender<Receipt>();
         let vault_receipt_info = vault.vault_receipt_info_mut(receipt.receipt_id());
         let receipt_reward_indices = vault_receipt_info.reward_indices();
         assert!(
-            receipt_reward_indices.borrow(type_name::get<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
+            receipt_reward_indices.borrow(type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000_000_000_000 * BASE_RATE,
         );
 
         test_scenario::return_shared(reward_manager);
@@ -960,6 +968,7 @@ public fun test_add_reward_to_buffer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1040,6 +1049,7 @@ public fun test_set_reward_rate_in_buffer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1164,6 +1174,7 @@ public fun test_set_reward_rate_in_buffer_fail_rate_too_high() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1249,6 +1260,7 @@ public fun test_set_reward_rate_in_buffer_fail_vault_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1330,6 +1342,7 @@ public fun test_update_reward_buffer() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1425,7 +1438,7 @@ public fun test_update_reward_buffer() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -1443,7 +1456,7 @@ public fun test_update_reward_buffer() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 100_000_000 * WAD);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 100_000_000 * WAD);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1455,7 +1468,7 @@ public fun test_update_reward_buffer() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 5);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -1473,7 +1486,7 @@ public fun test_update_reward_buffer() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 400_000_000 * WAD);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 400_000_000 * WAD);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1494,6 +1507,7 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1569,7 +1583,7 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 1001);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1579,9 +1593,9 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
         assert!(
-            reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 115_700_000_000 * BASE_RATE,
+            reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 115_700_000_000 * BASE_RATE,
         );
 
         test_scenario::return_shared(reward_manager);
@@ -1595,7 +1609,7 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 3_600_000 + 1);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1603,10 +1617,10 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
             reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>() == 95_834_800_000 * BASE_RATE,
         );
 
-        let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
+        let _reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
-        // assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
+        // assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1619,7 +1633,7 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 86_400_000 + 1);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1627,10 +1641,10 @@ public fun test_update_reward_buffer_mock_real_distribution_1() {
             reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>() == 35_200_000 * BASE_RATE,
         );
 
-        let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
+        let _reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
-        // assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
+        // assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1651,6 +1665,7 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1726,7 +1741,7 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 1001);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1734,10 +1749,10 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
             reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>() == 9_999_884_300_000 * BASE_RATE,
         );
 
-        let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
+        let _reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
-        // assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 115_700_000_000 * BASE_RATE);
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
+        // assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 115_700_000_000 * BASE_RATE);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1750,7 +1765,7 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 3_600_000 + 1);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1758,10 +1773,10 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
             reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>() == 9_583_480_000_000 * BASE_RATE,
         );
 
-        let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
+        let _reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
-        // assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
+        // assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1774,7 +1789,7 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 86_400_000 + 1);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         // std::debug::print(&std::ascii::string(b"reward_buffer_amount"));
         // std::debug::print(&reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>());
@@ -1782,10 +1797,10 @@ public fun test_update_reward_buffer_mock_real_distribution_2() {
             reward_manager.reward_buffer_amount<SUI_TEST_COIN, SUI_TEST_COIN>() == 3_520_000_000 * BASE_RATE,
         );
 
-        let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
+        let _reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
         // std::debug::print(&std::ascii::string(b"reward_indices"));
-        // std::debug::print(reward_indices.get(&type_name::get<SUI_TEST_COIN>()));
-        // assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
+        // std::debug::print(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()));
+        // assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 100_000_000_000_000_000);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -1811,6 +1826,7 @@ public fun test_update_reward_buffer_fail_vault_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -1889,7 +1905,7 @@ public fun test_update_reward_buffer_fail_vault_mismatch() {
         reward_manager.update_reward_buffer(
             &mut sui_vault_2,
             &clock,
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
         );
 
         test_scenario::return_shared(reward_manager);
@@ -1910,6 +1926,7 @@ public fun test_update_reward_buffer_with_no_shares() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2005,7 +2022,7 @@ public fun test_update_reward_buffer_with_no_shares() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -2023,7 +2040,7 @@ public fun test_update_reward_buffer_with_no_shares() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2036,7 +2053,7 @@ public fun test_update_reward_buffer_with_no_shares() {
 
         vault.set_total_shares(0);
         clock::set_for_testing(&mut clock, 3);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -2054,7 +2071,7 @@ public fun test_update_reward_buffer_with_no_shares() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2067,7 +2084,7 @@ public fun test_update_reward_buffer_with_no_shares() {
 
         clock::set_for_testing(&mut clock, 5);
         vault.set_total_shares(1_000_000_000);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -2085,7 +2102,7 @@ public fun test_update_reward_buffer_with_no_shares() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE * 3 / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE * 3 / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2111,6 +2128,7 @@ public fun test_update_reward_buffer_fail_asset_type_not_added() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2192,6 +2210,7 @@ public fun test_remove_reward_buffer_distribution() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2223,7 +2242,7 @@ public fun test_remove_reward_buffer_distribution() {
             &operation,
             &cap,
             &clock,
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
         );
 
         test_scenario::return_shared(reward_manager);
@@ -2252,6 +2271,7 @@ public fun test_remove_reward_buffer_distribution_fail_still_reward_amount() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2331,7 +2351,7 @@ public fun test_remove_reward_buffer_distribution_fail_still_reward_amount() {
             &operation,
             &cap,
             &clock,
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
         );
 
         test_scenario::return_shared(reward_manager);
@@ -2360,6 +2380,7 @@ public fun test_remove_reward_buffer_distribution_fail_vault_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2441,7 +2462,7 @@ public fun test_remove_reward_buffer_distribution_fail_vault_mismatch() {
             &operation,
             &cap,
             &clock,
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
         );
 
         test_scenario::return_shared(reward_manager);
@@ -2464,6 +2485,7 @@ public fun test_retrieve_undistributed_reward() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2559,7 +2581,7 @@ public fun test_retrieve_undistributed_reward() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -2577,7 +2599,7 @@ public fun test_retrieve_undistributed_reward() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2620,7 +2642,7 @@ public fun test_retrieve_undistributed_reward() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE * 4 / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE * 4 / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2648,6 +2670,7 @@ public fun test_retrieve_undistributed_reward_fail_vault_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2721,7 +2744,7 @@ public fun test_retrieve_undistributed_reward_fail_vault_mismatch() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -2776,6 +2799,7 @@ public fun test_retrieve_undistributed_reward_fail_not_enough_reward() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -2883,6 +2907,7 @@ public fun test_update_reward_buffers() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -3042,8 +3067,8 @@ public fun test_update_reward_buffers() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        // reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
-        // reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<USDC_TEST_COIN>());
+        // reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
+        // reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<USDC_TEST_COIN>());
         reward_manager.update_reward_buffers(&mut vault, &clock);
 
         assert!(
@@ -3076,8 +3101,8 @@ public fun test_update_reward_buffers() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
-        assert!(reward_indices.get(&type_name::get<USDC_TEST_COIN>()) == WAD * BASE_RATE * 2 / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<USDC_TEST_COIN>()) == WAD * BASE_RATE * 2 / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -3089,8 +3114,8 @@ public fun test_update_reward_buffers() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 5);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<USDC_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<USDC_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -3123,8 +3148,8 @@ public fun test_update_reward_buffers() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == WAD * BASE_RATE * 4 / 10);
-        assert!(reward_indices.get(&type_name::get<USDC_TEST_COIN>()) == WAD * BASE_RATE * 8 / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == WAD * BASE_RATE * 4 / 10);
+        assert!(reward_indices.get(&type_name::with_defining_ids<USDC_TEST_COIN>()) == WAD * BASE_RATE * 8 / 10);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -3150,6 +3175,7 @@ public fun test_update_reward_buffers_fail_vault_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -3245,6 +3271,7 @@ public fun test_user_claim_reward() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3393,6 +3420,7 @@ public fun test_user_claim_reward_fail_receipt_wrong_status() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3570,6 +3598,7 @@ public fun test_user_claim_reward_fail_vault_receipt_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3644,6 +3673,7 @@ public fun test_add_reward_balance_after_already_deposited() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3790,6 +3820,7 @@ public fun test_distribute_reward_buffer_after_already_deposited() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -3959,6 +3990,7 @@ public fun test_distribute_reward_buffer_with_other_user_execute_deposit() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -4236,6 +4268,7 @@ public fun test_distribute_reward_buffer_with_own_execute_deposit() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -4527,6 +4560,7 @@ public fun test_distribute_reward_buffer_with_own_execute_withdraw() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -4858,6 +4892,7 @@ public fun test_update_reward_indices_fail_no_reward_type() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -4866,7 +4901,7 @@ public fun test_update_reward_indices_fail_no_reward_type() {
 
         reward_manager.update_reward_indices(
             &vault,
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
             100_000_000,
         );
 
@@ -4894,6 +4929,7 @@ public fun test_claim_reward_fail_not_enough_reward() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     // Set mock aggregator and price
     s.next_tx(OWNER);
@@ -5007,7 +5043,7 @@ public fun test_claim_reward_fail_not_enough_reward() {
         let mut reward_manager = s.take_shared<RewardManager<SUI_TEST_COIN>>();
 
         let balance = reward_manager.remove_reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>(
-            type_name::get<SUI_TEST_COIN>(),
+            type_name::with_defining_ids<SUI_TEST_COIN>(),
             500_000_000,
         );
         balance.destroy_for_testing();
@@ -5049,6 +5085,7 @@ public fun test_update_reward_buffer_remaining_reward_buffer_amount_zero() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -5122,7 +5159,7 @@ public fun test_update_reward_buffer_remaining_reward_buffer_amount_zero() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 11);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -5138,7 +5175,7 @@ public fun test_update_reward_buffer_remaining_reward_buffer_amount_zero() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000 * WAD);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000 * WAD);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -5150,7 +5187,7 @@ public fun test_update_reward_buffer_remaining_reward_buffer_amount_zero() {
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 12);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         assert!(
             reward_manager.reward_balance<SUI_TEST_COIN, SUI_TEST_COIN>().value() == 1_000_000_000,
@@ -5166,7 +5203,7 @@ public fun test_update_reward_buffer_remaining_reward_buffer_amount_zero() {
         );
 
         let reward_indices = reward_manager.reward_indices<SUI_TEST_COIN>();
-        assert!(reward_indices.get(&type_name::get<SUI_TEST_COIN>()) == 1_000_000_000 * WAD);
+        assert!(reward_indices.get(&type_name::with_defining_ids<SUI_TEST_COIN>()) == 1_000_000_000 * WAD);
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -5185,6 +5222,7 @@ public fun test_add_reward_balance_fail_minimum_reward_amount() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -5240,6 +5278,7 @@ public fun test_update_reward_buffer_new_reward_less_than_minimum_reward_amount(
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -5313,7 +5352,7 @@ public fun test_update_reward_buffer_new_reward_less_than_minimum_reward_amount(
         let mut vault = s.take_shared<Vault<SUI_TEST_COIN>>();
 
         clock::set_for_testing(&mut clock, 2);
-        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::get<SUI_TEST_COIN>());
+        reward_manager.update_reward_buffer(&mut vault, &clock, type_name::with_defining_ids<SUI_TEST_COIN>());
 
         test_scenario::return_shared(reward_manager);
         test_scenario::return_shared(vault);
@@ -5338,6 +5377,7 @@ public fun test_add_reward_balance_fail_vault_id_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -5395,6 +5435,7 @@ public fun test_add_reward_balance_fail_new_reward_less_than_minimum_reward_amou
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
@@ -5456,6 +5497,7 @@ public fun test_add_reward_to_buffer_fail_vault_id_mismatch() {
     init_vault::init_vault(&mut s, &mut clock);
     init_vault::init_create_vault<SUI_TEST_COIN>(&mut s);
     init_vault::init_create_reward_manager<SUI_TEST_COIN>(&mut s);
+    init_vault::init_single_operator_config_for_owner<SUI_TEST_COIN>(&mut s, true);
 
     s.next_tx(OWNER);
     {
